@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"os/signal"
-	"syscall"
-	"time"
 
 	"github.com/codegangsta/cli"
 	"github.com/coreos/go-semver/semver"
@@ -23,52 +20,32 @@ func main() {
 	app.Action = run
 	app.Flags = []cli.Flag{
 		cli.StringFlag{
-			Name:   "example, e",
-			EnvVar: "IMAGE_UPLOAD_TO_DROPBOX_AND_POST_TO_SLACK_EXAMPLE",
-			Usage:  "Example string flag",
+			Name:   "dropbox-access-token, d",
+			EnvVar: "IUTDAPTS_DROPBOX_ACCESS_TOKEN",
+			Usage:  "Dropbox Access Token",
 		},
 	}
 	app.Run(os.Args)
 }
 
 func run(context *cli.Context) {
-	example := getOpts(context)
-
-	sigTerm := make(chan os.Signal)
-	signal.Notify(sigTerm, syscall.SIGTERM)
-
-	sigTermReceived := false
-
-	go func() {
-		<-sigTerm
-		fmt.Println("SIGTERM received, waiting to exit")
-		sigTermReceived = true
-	}()
-
-	for {
-		if sigTermReceived {
-			fmt.Println("I'll be back.")
-			os.Exit(0)
-		}
-
-		debug("image-upload-to-dropbox-and-post-to-slack.loop: %v", example)
-		time.Sleep(1 * time.Second)
-	}
+	dropboxAccessToken := getOpts(context)
+	debug(dropboxAccessToken)
 }
 
 func getOpts(context *cli.Context) string {
-	example := context.String("example")
+	dropboxAccessToken := context.String("dropbox-access-token")
 
-	if example == "" {
+	if dropboxAccessToken == "" {
 		cli.ShowAppHelp(context)
 
-		if example == "" {
-			color.Red("  Missing required flag --example or IMAGE_UPLOAD_TO_DROPBOX_AND_POST_TO_SLACK_EXAMPLE")
+		if dropboxAccessToken == "" {
+			color.Red("  Missing required flag --dropbox-access-token or IUTDAPTS_DROPBOX_ACCESS_TOKEN")
 		}
 		os.Exit(1)
 	}
 
-	return example
+	return dropboxAccessToken
 }
 
 func version() string {

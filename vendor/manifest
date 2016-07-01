@@ -24,10 +24,25 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/dropbox/dropbox-sdk-go-unofficial",
+			"repository": "https://github.com/dropbox/dropbox-sdk-go-unofficial",
+			"revision": "04e7072d0476c888b95bbad87858dad2416ef0d5",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/fatih/color",
 			"repository": "https://github.com/fatih/color",
 			"revision": "533cd7fd8a85905f67a1753afb4deddc85ea174f",
 			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/golang/protobuf/proto",
+			"repository": "https://github.com/golang/protobuf",
+			"revision": "3852dcfda249c2097355a6aabb199a28d97b30df",
+			"branch": "master",
+			"path": "/proto",
 			"notests": true
 		},
 		{
@@ -45,6 +60,20 @@
 			"notests": true
 		},
 		{
+			"importpath": "github.com/onsi/ginkgo",
+			"repository": "https://github.com/onsi/ginkgo",
+			"revision": "059cec02d342bab423425a99b191186a03255e9e",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/onsi/gomega",
+			"repository": "https://github.com/onsi/gomega",
+			"revision": "45da7174b70cc2cde7a980ee04a0aa74412c414a",
+			"branch": "master",
+			"notests": true
+		},
+		{
 			"importpath": "github.com/tj/go-debug",
 			"repository": "https://github.com/tj/go-debug",
 			"revision": "ff4a55a20a86994118644bbddc6a216da193cc13",
@@ -55,6 +84,21 @@
 			"importpath": "github.com/visionmedia/go-debug",
 			"repository": "https://github.com/visionmedia/go-debug",
 			"revision": "ff4a55a20a86994118644bbddc6a216da193cc13",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/net/context",
+			"repository": "https://go.googlesource.com/net",
+			"revision": "8e573f4005aa312856df2ea97c32b9beac70dd89",
+			"branch": "master",
+			"path": "/context",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/oauth2",
+			"repository": "https://go.googlesource.com/oauth2",
+			"revision": "65a8d08c6292395d47053be10b3c5e91960def76",
 			"branch": "master",
 			"notests": true
 		},
