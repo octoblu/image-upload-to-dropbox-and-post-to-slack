@@ -1,6 +1,8 @@
 package uploader
 
 import (
+	"bytes"
+	"encoding/base64"
 	"io"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial"
@@ -10,8 +12,12 @@ import (
 
 // Uploader defines the interface for uploading a file
 type Uploader interface {
-	// Upload a file to dropbox at the given remote filepath
+	// Upload a file to dropbox to the given remote filepath
 	Upload(filepath string, content io.Reader) (string, error)
+
+	// UploadBase64 takes a base64 encoded file as a string and uploads it
+	// to dropbox at the given remote filepath
+	UploadBase64(filepath, contentStrBase64 string) (string, error)
 }
 
 // Client defines the interface of the client the Uploader will use
@@ -50,4 +56,14 @@ func (uploader *dropBoxUploader) Upload(filepath string, content io.Reader) (str
 	}
 
 	return sharedLinkMetadata.File.Url, nil
+}
+
+func (uploader *dropBoxUploader) UploadBase64(filepath string, contentStrBase64 string) (string, error) {
+	data, err := base64.StdEncoding.DecodeString(contentStrBase64)
+	if err != nil {
+		return "", err
+	}
+
+	content := bytes.NewReader(data)
+	return uploader.Upload(filepath, content)
 }
