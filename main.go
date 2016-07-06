@@ -8,6 +8,7 @@ import (
 	"github.com/codegangsta/cli"
 	"github.com/coreos/go-semver/semver"
 	"github.com/fatih/color"
+	"github.com/octoblu/image-upload-to-dropbox-and-post-to-slack/slack"
 	"github.com/octoblu/image-upload-to-dropbox-and-post-to-slack/uploader"
 	De "github.com/tj/go-debug"
 )
@@ -35,26 +36,35 @@ func main() {
 			EnvVar: "IUTDAPTS_DROPBOX_FILE_PATH",
 			Usage:  "Remote file path on Dropbox the image will be uploaded to",
 		},
+		cli.StringFlag{
+			Name:   "slack-webhook, s",
+			EnvVar: "IUTDAPTS_SLACK_WEBHOOK",
+			Usage:  "Slack webhook to hit up with the url",
+		},
 	}
 	app.Run(os.Args)
 }
 
 func run(context *cli.Context) {
-	contentStrBase64, dropboxAccessToken, filePath := getOpts(context)
+	contentStrBase64, dropboxAccessToken, filePath, slackWebhook := getOpts(context)
 
 	dropbox := uploader.New(dropboxAccessToken)
 	publicURL, err := dropbox.UploadBase64(filePath, contentStrBase64)
 	fatalIfErr(err)
 
-	fmt.Println("publicURL: ", publicURL)
+	slackClient := slack.New(slackWebhook)
+	text := fmt.Sprintf("<%v|Click Here> To see the latest image upload", publicURL)
+	err = slackClient.Post(text)
+	fatalIfErr(err)
 }
 
-func getOpts(context *cli.Context) (string, string, string) {
+func getOpts(context *cli.Context) (string, string, string, string) {
 	contentStrBase64 := context.String("content")
 	dropboxAccessToken := context.String("dropbox-access-token")
 	dropboxFilePath := context.String("dropbox-file-path")
+	slackWebhook := context.String("slack-webhook")
 
-	if contentStrBase64 == "" || dropboxAccessToken == "" || dropboxFilePath == "" {
+	if contentStrBase64 == "" || dropboxAccessToken == "" || dropboxFilePath == "" || slackWebhook == "" {
 		cli.ShowAppHelp(context)
 
 		if contentStrBase64 == "" {
@@ -66,10 +76,13 @@ func getOpts(context *cli.Context) (string, string, string) {
 		if dropboxFilePath == "" {
 			color.Red("  Missing required flag --dropbox-file-path or IUTDAPTS_DROPBOX_FILE_PATH")
 		}
+		if slackWebhook == "" {
+			color.Red("  Missing required flag --slack-webhook or IUTDAPTS_SLACK_WEBHOOK")
+		}
 		os.Exit(1)
 	}
 
-	return contentStrBase64, dropboxAccessToken, dropboxFilePath
+	return contentStrBase64, dropboxAccessToken, dropboxFilePath, slackWebhook
 }
 
 func fatalIfErr(err error) {
