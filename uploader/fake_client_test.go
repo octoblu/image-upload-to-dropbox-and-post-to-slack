@@ -8,7 +8,14 @@ type FakeClient struct {
 	CreateSharedLinkWithSettingsSpy struct {
 		CallCount                 int
 		LastCalledWith            *sharing.CreateSharedLinkWithSettingsArg
+		ReturnsError              error
 		ReturnsSharedLinkMetadata *sharing.SharedLinkMetadata
+	}
+
+	ListSharedLinksSpy struct {
+		CallCount                    int
+		LastCalledWith               *sharing.ListSharedLinksArg
+		ReturnsListSharedLinksResult *sharing.ListSharedLinksResult
 	}
 
 	UploadSpy struct {
@@ -29,7 +36,15 @@ func (client *FakeClient) CreateSharedLinkWithSettings(arg *sharing.CreateShared
 
 	spy.CallCount++
 	spy.LastCalledWith = arg
-	return spy.ReturnsSharedLinkMetadata, nil
+	return spy.ReturnsSharedLinkMetadata, spy.ReturnsError
+}
+
+func (client *FakeClient) ListSharedLinks(arg *sharing.ListSharedLinksArg) (res *sharing.ListSharedLinksResult, err error) {
+	spy := &client.ListSharedLinksSpy
+
+	spy.CallCount++
+	spy.LastCalledWith = arg
+	return spy.ReturnsListSharedLinksResult, nil
 }
 
 func (client *FakeClient) Upload(commitInfo *files.CommitInfo, content io.Reader) (res *files.FileMetadata, err error) {

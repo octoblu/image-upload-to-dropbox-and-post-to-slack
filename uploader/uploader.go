@@ -3,7 +3,9 @@ package uploader
 import (
 	"bytes"
 	"encoding/base64"
+	"fmt"
 	"io"
+	"strings"
 
 	"github.com/dropbox/dropbox-sdk-go-unofficial"
 	"github.com/dropbox/dropbox-sdk-go-unofficial/files"
@@ -23,6 +25,7 @@ type Uploader interface {
 // Client defines the interface of the client the Uploader will use
 type Client interface {
 	CreateSharedLinkWithSettings(arg *sharing.CreateSharedLinkWithSettingsArg) (res *sharing.SharedLinkMetadata, err error)
+	ListSharedLinks(arg *sharing.ListSharedLinksArg) (res *sharing.ListSharedLinksResult, err error)
 	Upload(arg *files.CommitInfo, content io.Reader) (res *files.FileMetadata, err error)
 }
 
@@ -43,7 +46,7 @@ func NewWithClient(client Client) Uploader {
 
 func (uploader *dropBoxUploader) Upload(filepath string, content io.Reader) (string, error) {
 	commitInfo := files.NewCommitInfo(filepath)
-	commitInfo.Mode = &files.WriteMode{Update: "overwrite"}
+	commitInfo.Mode = &files.WriteMode{Tag: "overwrite"}
 	fileMetadata, err := uploader.client.Upload(commitInfo, content)
 	if err != nil {
 		return "", err
@@ -51,11 +54,24 @@ func (uploader *dropBoxUploader) Upload(filepath string, content io.Reader) (str
 
 	settings := sharing.NewCreateSharedLinkWithSettingsArg(fileMetadata.PathLower)
 	sharedLinkMetadata, err := uploader.client.CreateSharedLinkWithSettings(settings)
-	if err != nil {
+	if err == nil {
+		return sharedLinkMetadata.File.Url, nil
+	}
+	if !strings.HasPrefix(err.Error(), "shared_link_already_exists") {
 		return "", err
 	}
 
-	return sharedLinkMetadata.File.Url, nil
+	listSharedLinksArg := sharing.NewListSharedLinksArg()
+	listSharedLinksArg.Path = fileMetadata.PathLower
+	listSharedLinksResult, err := uploader.client.ListSharedLinks(listSharedLinksArg)
+	if err != nil {
+		return "", err
+	}
+	if len(listSharedLinksResult.Links) == 0 {
+		return "", fmt.Errorf("Shared Link already existed, but could not retrieve it")
+	}
+
+	return listSharedLinksResult.Links[0].File.Url, nil
 }
 
 func (uploader *dropBoxUploader) UploadBase64(filepath string, contentStrBase64 string) (string, error) {

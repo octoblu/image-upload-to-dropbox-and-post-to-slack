@@ -52,7 +52,7 @@ var _ = Describe("Uploader", func() {
 				fakeClient.CreateSharedLinkWithSettingsSpy.ReturnsSharedLinkMetadata = sharedLinkMetadata
 
 				sut = uploader.NewWithClient(fakeClient)
-				url, err = sut.Upload("failures/example-2016-01-02.png", sampleImage())
+				url, err = sut.Upload("/failures/example-2016-01-02.png", sampleImage())
 			})
 
 			It("Should have called fakeClient.Upload", func() {
@@ -61,8 +61,8 @@ var _ = Describe("Uploader", func() {
 
 			It("Should have called fakeClient.Upload with CommitInfo that included the filepath", func() {
 				commitInfo := fakeClient.UploadSpy.LastCalledWithCommitInfo
-				Expect(commitInfo.Path).To(Equal("failures/example-2016-01-02.png"))
-				Expect(commitInfo.Mode.Update).To(Equal("overwrite"))
+				Expect(commitInfo.Path).To(Equal("/failures/example-2016-01-02.png"))
+				Expect(commitInfo.Mode.Tag).To(Equal("overwrite"))
 			})
 
 			It("Should have called fakeClient.CreateSharedLinkWithSettings", func() {
@@ -91,7 +91,7 @@ var _ = Describe("Uploader", func() {
 				fakeClient = NewFakeClient()
 				fakeClient.UploadSpy.ReturnsError = fmt.Errorf("Error uploading.")
 				sut = uploader.NewWithClient(fakeClient)
-				url, err = sut.Upload("failures/example-2016-01-02.png", sampleImage())
+				url, err = sut.Upload("/failures/example-2016-01-02.png", sampleImage())
 			})
 
 			It("Should have an empty url", func() {
@@ -108,8 +108,8 @@ var _ = Describe("Uploader", func() {
 			})
 
 			It("Should have called fakeClient.Upload with CommitInfo that included the filepath", func() {
-				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Path).To(Equal("failures/example-2016-01-02.png"))
-				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Mode.Update).To(Equal("overwrite"))
+				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Path).To(Equal("/failures/example-2016-01-02.png"))
+				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Mode.Tag).To(Equal("overwrite"))
 			})
 
 			It("Should have called fakeClient.Upload with the content passed in", func() {
@@ -133,7 +133,7 @@ var _ = Describe("Uploader", func() {
 				fakeClient.CreateSharedLinkWithSettingsSpy.ReturnsSharedLinkMetadata = sharedLinkMetadata
 
 				sut = uploader.NewWithClient(fakeClient)
-				url, err = sut.UploadBase64("failures/example-2016-01-02.png", IMAGE_DATA)
+				url, err = sut.UploadBase64("/failures/example-2016-01-02.png", IMAGE_DATA)
 			})
 
 			It("Should have called fakeClient.Upload", func() {
@@ -142,8 +142,8 @@ var _ = Describe("Uploader", func() {
 
 			It("Should have called fakeClient.Upload with CommitInfo that included the filepath", func() {
 				commitInfo := fakeClient.UploadSpy.LastCalledWithCommitInfo
-				Expect(commitInfo.Path).To(Equal("failures/example-2016-01-02.png"))
-				Expect(commitInfo.Mode.Update).To(Equal("overwrite"))
+				Expect(commitInfo.Path).To(Equal("/failures/example-2016-01-02.png"))
+				Expect(commitInfo.Mode.Tag).To(Equal("overwrite"))
 			})
 
 			It("Should have called fakeClient.CreateSharedLinkWithSettings", func() {
@@ -165,6 +165,73 @@ var _ = Describe("Uploader", func() {
 			})
 		})
 
+		Describe("when shared_link_already_exists error", func() {
+			var url string
+
+			BeforeEach(func() {
+				fileMetadata := &files.FileMetadata{PathLower: "/failures/example-2016-01-02.png"}
+
+				fileLinkMetadata := &sharing.FileLinkMetadata{Url: "https://dropbox.biz/failures/example-2016-01-02.png"}
+				sharedLinkMetadata := &sharing.SharedLinkMetadata{File: fileLinkMetadata}
+				sharedLinkMetadatas := []*sharing.SharedLinkMetadata{sharedLinkMetadata}
+				listSharedLinksResult := sharing.NewListSharedLinksResult(sharedLinkMetadatas, false)
+
+				fakeClient = NewFakeClient()
+				fakeClient.UploadSpy.ReturnsFileMetadata = fileMetadata
+				fakeClient.CreateSharedLinkWithSettingsSpy.ReturnsError = fmt.Errorf("shared_link_already_exists/..")
+				fakeClient.ListSharedLinksSpy.ReturnsListSharedLinksResult = listSharedLinksResult
+
+				sut = uploader.NewWithClient(fakeClient)
+				url, err = sut.UploadBase64("/failures/example-2016-01-02.png", IMAGE_DATA)
+			})
+
+			It("Should have called fakeClient.ListSharedLinks with the path passed in", func() {
+				Expect(fakeClient.ListSharedLinksSpy.CallCount).To(Equal(1))
+				Expect(fakeClient.ListSharedLinksSpy.LastCalledWith.Path).To(Equal("/failures/example-2016-01-02.png"))
+			})
+
+			It("Should have the url from list shared links", func() {
+				Expect(url).To(Equal("https://dropbox.biz/failures/example-2016-01-02.png"))
+			})
+
+			It("Should not have an error", func() {
+				Expect(err).To(BeNil())
+			})
+		})
+
+		Describe("when shared_link_already_exists error, and 0 length list shared links response", func() {
+			var url string
+
+			BeforeEach(func() {
+				fileMetadata := &files.FileMetadata{PathLower: "/failures/example-2016-01-02.png"}
+
+				sharedLinkMetadatas := []*sharing.SharedLinkMetadata{}
+				listSharedLinksResult := sharing.NewListSharedLinksResult(sharedLinkMetadatas, false)
+
+				fakeClient = NewFakeClient()
+				fakeClient.UploadSpy.ReturnsFileMetadata = fileMetadata
+				fakeClient.CreateSharedLinkWithSettingsSpy.ReturnsError = fmt.Errorf("shared_link_already_exists/..")
+				fakeClient.ListSharedLinksSpy.ReturnsListSharedLinksResult = listSharedLinksResult
+
+				sut = uploader.NewWithClient(fakeClient)
+				url, err = sut.UploadBase64("/failures/example-2016-01-02.png", IMAGE_DATA)
+			})
+
+			It("Should have called fakeClient.ListSharedLinks with the path passed in", func() {
+				Expect(fakeClient.ListSharedLinksSpy.CallCount).To(Equal(1))
+				Expect(fakeClient.ListSharedLinksSpy.LastCalledWith.Path).To(Equal("/failures/example-2016-01-02.png"))
+			})
+
+			It("Should have an empty url", func() {
+				Expect(url).To(Equal(""))
+			})
+
+			It("Should have an error", func() {
+				Expect(err).NotTo(BeNil())
+				Expect(err.Error()).To(Equal("Shared Link already existed, but could not retrieve it"))
+			})
+		})
+
 		Describe("when fakeClient.Upload returns an error", func() {
 			var url string
 
@@ -172,7 +239,7 @@ var _ = Describe("Uploader", func() {
 				fakeClient = NewFakeClient()
 				fakeClient.UploadSpy.ReturnsError = fmt.Errorf("Error uploading.")
 				sut = uploader.NewWithClient(fakeClient)
-				url, err = sut.UploadBase64("failures/example-2016-01-02.png", IMAGE_DATA)
+				url, err = sut.UploadBase64("/failures/example-2016-01-02.png", IMAGE_DATA)
 			})
 
 			It("Should have an empty url", func() {
@@ -189,8 +256,8 @@ var _ = Describe("Uploader", func() {
 			})
 
 			It("Should have called fakeClient.Upload with CommitInfo that included the filepath", func() {
-				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Path).To(Equal("failures/example-2016-01-02.png"))
-				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Mode.Update).To(Equal("overwrite"))
+				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Path).To(Equal("/failures/example-2016-01-02.png"))
+				Expect(fakeClient.UploadSpy.LastCalledWithCommitInfo.Mode.Tag).To(Equal("overwrite"))
 			})
 
 			It("Should have called fakeClient.Upload with the content passed in", func() {
